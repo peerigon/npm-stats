@@ -1,0 +1,31 @@
+{
+  "name": "peerigon-npm-stats",
+  "version": "0.0.1",
+  "description": "fetches stats for a npm user",
+  "main": "lib/index.js",
+  "directories": {
+    "example": "example"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/peerigon/npm-stats.git"
+  },
+  "keywords": [
+    "npm",
+    "stats",
+    "user"
+  ],
+  "author": "peerigon",
+  "license": "Unlicense",
+  "bugs": {
+    "url": "https://github.com/peerigon/npm-stats/issues"
+  },
+  "homepage": "https://github.com/peerigon/npm-stats#readme",
+  "dependencies": {
+    "jsdom": "^6.3.0",
+    "node-fetch": "^1.3.2"
+  }
+}
