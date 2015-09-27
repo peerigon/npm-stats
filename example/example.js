@@ -1,13 +1,14 @@
 "use strict";
 
-let npmStats = require("../lib");
+let stats = require("../lib/");
 
-npmStats("peerigon", "month")
-    .then(function (res) {
-
-        console.log("total: " + res.total);
-
-        res.pkgs.forEach(function (pkg) {
-            console.log("- " + pkg.name + ": " + pkg.downloads);
-        });
+stats.modulesByUser("peerigon")
+    .then(function (modules) {
+        return stats.modules(modules);
+    })
+    .then(function(res) {
+        console.log(res);
+    })
+    .catch(function (err) {
+        console.error("ERR", err);
     });
