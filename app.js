@@ -1,15 +1,16 @@
 "use strict";
 
 const koa = require("koa");
-const app = koa();
-const stats = require("./lib");
 const cash = require("koa-cash");
+const stats = require("./lib");
 
-var cache = require('lru-cache')({
+let cache = require("lru-cache")({
     maxAge: 30000 // global max age
 });
 
-app.use(require('koa-cash')({
+const app = koa();
+
+app.use(require("koa-cash")({
     get: function* (key, maxAge) {
         return cache.get(key)
     },
@@ -19,7 +20,7 @@ app.use(require('koa-cash')({
 }));
 
 //error handler; see https://github.com/koajs/koa/wiki/Error-Handling
-app.use(function *(next) {
+app.use(function* (next) {
     try {
         yield next;
     } catch (err) {
@@ -37,46 +38,60 @@ app.use(function* (next) {
     yield next;
 });
 
-app.use(function *(next) {
+app.use(function* (next) {
 
-    if(this.query.user) {
+    let modules;
+
+    if (this.query.user) {
         this.state.modules = yield stats.modulesByUser(this.query.user);
     }
 
-    if(this.query.modules && !this.state.user) {
-        this.state.modules = this.query.modules.split(",");
+    if (this.query.modules) {
+        this.state.modules = this.state.modules || [];
 
+        modules = this.query.modules.split(",");
+
+        if (!Array.isArray(modules)) {
+            modules = [modules];
+        }
+
+        this.state.modules = this.state.modules.concat(modules);
     }
 
-    if(!this.state.modules) {
-        throw new Error("You have to pass modules via query args");
+    if (!this.state.modules) {
+        throw new Error("You have to pass modules via query args: ?user=peerigon&modules=less-loader");
     }
 
     yield next;
 });
 
-app.use(function *(next) {
+app.use(function* fetchModules(next) {
 
     this.state.modules = yield stats.modules(this.state.modules);
 
     yield next;
 });
 
-app.use(function *stripFields(next) {
+app.use(function* stripFields(next) {
 
-    if(this.query.fields) {
+    if (this.query.fields) {
         this.state.fields = this.query.fields.split(",");
     }
 
     let fields = this.state.fields || ["name", "description", "downloads"];
+    this.state.downloads = 0;
 
-    this.state.modules = this.state.modules.map(function(module) {
+    this.state.modules = this.state.modules.map((module) => {
 
         let res = {};
 
-        fields.forEach(function(field) {
+        fields.forEach(function (field) {
             res[field] = module[field];
         });
+
+        if (module.downloads && module.downloads.downloads) {
+            this.state.downloads += module.downloads.downloads;
+        }
 
         return res;
 
@@ -86,9 +101,15 @@ app.use(function *stripFields(next) {
 
 });
 
-app.use(function *() {
-    this.body = this.state.modules;
+
+app.use(function* respond() {
+    this.body = {
+        downloads: this.state.downloads,
+        modules: this.state.modules
+    };
 });
 
 
-app.listen(9000);
+app.listen(9000, function() {
+    console.log("npm peerigon stats listening on port 9000");
+});
