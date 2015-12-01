@@ -8,7 +8,7 @@ let cache = require("lru-cache")({
     maxAge: 30000 // global max age
 });
 
-let port = process.env.port || 9090;
+let port = process.env.PORT || 9090;
 
 const app = koa();
 
