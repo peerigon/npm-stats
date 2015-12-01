@@ -8,6 +8,8 @@ let cache = require("lru-cache")({
     maxAge: 30000 // global max age
 });
 
+let port = process.env.port || 9090;
+
 const app = koa();
 
 app.use(require("koa-cash")({
@@ -110,6 +112,6 @@ app.use(function* respond() {
 });
 
 
-app.listen(9000, function() {
-    console.log("npm peerigon stats listening on port 9000");
+app.listen(port, function() {
+    console.log(`npm stats listening on port ${port}`);
 });
