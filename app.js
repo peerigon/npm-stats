@@ -3,17 +3,20 @@
 const koa = require("koa");
 const cash = require("koa-cash");
 const stats = require("./lib");
+const favicon = require("koa-favicon");
 
-let cache = require("lru-cache")({
-    maxAge: 30000 // global max age
+const cache = require("lru-cache")({
+    maxAge: 1000 * 60 * 60 * 24 // global max age = 1 Day
 });
 
-let port = process.env.PORT || 9090;
+const port = process.env.PORT || 9090;
 
 const app = koa();
 
+app.use(favicon());
+
 app.use(require("koa-cash")({
-    get: function* (key, maxAge) {
+    get: function* (key) {
         return cache.get(key)
     },
     set: function* (key, value) {
@@ -21,7 +24,6 @@ app.use(require("koa-cash")({
     }
 }));
 
-//error handler; see https://github.com/koajs/koa/wiki/Error-Handling
 app.use(function* (next) {
     try {
         yield next;
@@ -33,19 +35,15 @@ app.use(function* (next) {
 });
 
 app.use(function* (next) {
-    // this response is already cashed if `true` is returned,
-    // so this middleware will automatically serve this response from cache
     if (yield* this.cashed()) return;
-
     yield next;
 });
 
 app.use(function* (next) {
-
     let modules;
 
     if (this.query.user) {
-        this.state.modules = yield stats.modulesByUser(this.query.user);
+        this.state.modules = yield stats.findModulesByUser(this.query.user);
     }
 
     if (this.query.modules) {
@@ -60,6 +58,8 @@ app.use(function* (next) {
         this.state.modules = this.state.modules.concat(modules);
     }
 
+    this.state.duration = this.query.duration || "month";
+
     if (!this.state.modules) {
         throw new Error("You have to pass modules via query args: ?user=peerigon&modules=less-loader");
     }
@@ -68,24 +68,21 @@ app.use(function* (next) {
 });
 
 app.use(function* fetchModules(next) {
-
-    this.state.modules = yield stats.modules(this.state.modules);
+    this.state.modules = yield stats.getStatsForModules(this.state.modules, this.state.duration);
 
     yield next;
 });
 
 app.use(function* stripFields(next) {
-
     if (this.query.fields) {
         this.state.fields = this.query.fields.split(",");
     }
 
-    let fields = this.state.fields || ["name", "description", "downloads"];
+    const fields = this.state.fields || ["name", "description", "downloads"];
     this.state.downloads = 0;
 
     this.state.modules = this.state.modules.map((module) => {
-
-        let res = {};
+        const res = {};
 
         fields.forEach(function (field) {
             res[field] = module[field];
@@ -96,11 +93,9 @@ app.use(function* stripFields(next) {
         }
 
         return res;
-
     });
 
     yield next;
-
 });
 
 
@@ -110,7 +105,6 @@ app.use(function* respond() {
         modules: this.state.modules
     };
 });
-
 
 app.listen(port, function() {
     console.log(`npm stats listening on port ${port}`);
