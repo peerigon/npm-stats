@@ -35,7 +35,10 @@ app.use(function* (next) {
 });
 
 app.use(function* (next) {
-    if (yield* this.cashed()) return;
+    if (yield* this.cashed()) {
+        this.set("Access-Control-Allow-Origin", "*");
+        return;
+    }
     yield next;
 });
 
