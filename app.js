@@ -100,7 +100,7 @@ app.use(function* stripFields(next) {
 
 
 app.use(function* respond() {
-    this.set("Access-Control-Allow-Origin", "http://localhost");
+    this.set("Access-Control-Allow-Origin", "*");
     this.body = {
         downloads: this.state.downloads,
         modules: this.state.modules
